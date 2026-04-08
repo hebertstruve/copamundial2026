@@ -40,23 +40,26 @@ const WorldCupNews = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 mt-12 mb-10">
-      <h2 className="text-2xl font-black italic text-blue-900 mb-6 uppercase tracking-tighter border-l-4 border-blue-900 pl-4">
-        Noticias FIFA 2026
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="max-w-7xl mx-auto px-4 mt-16 mb-20">
+      <div className="flex items-center gap-4 mb-8">
+        <h2 className="text-3xl font-black italic text-slate-900 uppercase tracking-tighter">Noticias FIFA 2026</h2>
+        <div className="h-1 flex-grow bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-full bg-red-600 w-24"></div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {news.map((n) => (
           <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" 
-             className="group bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all border border-slate-200 flex flex-col md:flex-row">
-            <div className="md:w-1/3 h-40 md:h-auto overflow-hidden">
-              <img src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+             className="group bg-white rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all border border-slate-100 flex flex-col md:flex-row">
+            <div className="md:w-2/5 h-48 md:h-auto overflow-hidden">
+              <img src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
-            <div className="p-5 md:w-2/3">
-              <span className="text-blue-600 text-[10px] font-black px-2 py-1 rounded-md bg-blue-50 mb-2 inline-block italic uppercase">
+            <div className="p-8 md:w-3/5">
+              <span className="text-red-600 text-[10px] font-black px-3 py-1 rounded-full bg-red-50 mb-4 inline-block tracking-widest italic uppercase">
                 {n.tag}
               </span>
-              <h3 className="text-md font-black leading-tight mb-2 group-hover:text-blue-700">{n.title}</h3>
-              <p className="text-slate-500 text-[11px] line-clamp-2">{n.summary}</p>
+              <h3 className="text-xl font-black leading-tight mb-3 group-hover:text-blue-900 transition-colors">{n.title}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed line-clamp-2">{n.summary}</p>
             </div>
           </a>
         ))}
@@ -65,49 +68,15 @@ const WorldCupNews = () => {
   );
 };
 
-// --- GENERADORES ---
-const generateInitialMatches = () => {
-  const m: any[] = [];
-  Object.keys(INITIAL_GROUPS).forEach(g => {
-    const t = INITIAL_GROUPS[g];
-    const pairs = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
-    pairs.forEach((p, i) => m.push({ id: `${g}-${i}`, group: g, home: t[p[0]].name, away: t[p[1]].name, scoreH: 0, scoreA: 0, played: false }));
-  });
-  return m;
-};
-
-const generateInitialBracket = () => {
-  const rounds = [
-    { name: "32avos", count: 16, prefix: "R32" },
-    { name: "Octavos", count: 8, prefix: "R16" },
-    { name: "Cuartos", count: 4, prefix: "QF" },
-    { name: "Semis", count: 2, prefix: "SF" },
-    { name: "FINAL", count: 1, prefix: "FINAL" }
-  ];
-  const b: any[] = [];
-  rounds.forEach((round, rIdx) => {
-    for (let i = 1; i <= round.count; i++) {
-      b.push({ 
-        id: `${round.prefix}-${i}`, 
-        round: round.name, 
-        teamH: "TBD", teamA: "TBD", 
-        scoreH: 0, scoreA: 0, penH: 0, penA: 0, 
-        winner: null, played: false, 
-        next: rounds[rIdx + 1] ? `${rounds[rIdx + 1].prefix}-${Math.ceil(i / 2)}` : null 
-      });
-    }
-  });
-  return b;
-};
-
-const TeamLabel = ({ name, size = "w-6" }: { name: string, size?: string }) => {
+// --- COMPONENTES AUXILIARES ---
+const TeamLabel = ({ name, size = "w-7" }: { name: string, size?: string }) => {
   const allTeams = Object.values(INITIAL_GROUPS).flat() as any[];
   const team = allTeams.find(t => t.name === name);
-  if (!team) return <span className="font-bold text-slate-300 italic text-xs">TBD</span>;
+  if (!team) return <span className="font-bold text-slate-300 italic text-xs uppercase tracking-tighter">Por Definir</span>;
   return (
-    <div className="flex items-center gap-2 overflow-hidden">
-      <img src={`https://flagcdn.com/w40/${team.code}.png`} alt={name} className={`${size} h-auto rounded-sm border border-slate-100 flex-shrink-0`} />
-      <span className="font-bold truncate text-sm" style={{ color: team.color }}>{name}</span>
+    <div className="flex items-center gap-3 overflow-hidden">
+      <img src={`https://flagcdn.com/w40/${team.code}.png`} alt={name} className={`${size} h-auto rounded shadow-sm border border-slate-100 flex-shrink-0`} />
+      <span className="font-black truncate text-sm uppercase tracking-tight" style={{ color: team.color }}>{name}</span>
     </div>
   );
 };
@@ -154,22 +123,15 @@ export default function WorldCupApp() {
         const newB = [...prev];
         const idx = newB.findIndex(m => m.id === id);
         if (idx === -1) return prev;
-        
         const m = { ...newB[idx], [side]: v, played: true };
-        
-        if ((side === 'scoreH' || side === 'scoreA') && m.scoreH !== m.scoreA) {
-          m.penH = 0; m.penA = 0;
-        }
-
+        if ((side === 'scoreH' || side === 'scoreA') && m.scoreH !== m.scoreA) { m.penH = 0; m.penA = 0; }
         let winner = null;
         if (m.scoreH > m.scoreA) winner = m.teamH;
         else if (m.scoreA > m.scoreH) winner = m.teamA;
         else if (m.penH > m.penA) winner = m.teamH;
         else if (m.penA > m.penH) winner = m.teamA;
-
         m.winner = winner;
         newB[idx] = m;
-
         if (m.winner && m.next) {
           const nIdx = newB.findIndex(nb => nb.id === m.next);
           if (nIdx !== -1) {
@@ -178,7 +140,6 @@ export default function WorldCupApp() {
             else newB[nIdx].teamA = m.winner;
           }
         }
-
         if (id === "FINAL-1" && m.winner) confetti({ particleCount: 150, spread: 70 });
         return newB;
       });
@@ -186,7 +147,7 @@ export default function WorldCupApp() {
   };
 
   const simulateGroups = () => {
-    if (!confirm("¿Simular resultados?")) return;
+    if (!confirm("¿Simular todos los resultados?")) return;
     setMatches(matches.map(m => ({ ...m, scoreH: Math.floor(Math.random() * 4), scoreA: Math.floor(Math.random() * 4), played: true })));
   };
 
@@ -215,89 +176,139 @@ export default function WorldCupApp() {
   const totalGoals = matches.reduce((acc, m) => acc + (m.scoreH + m.scoreA), 0);
 
   return (
-    <main className="min-h-screen bg-slate-100 pb-10 font-sans">
-      <header className="bg-blue-900 text-white p-6 shadow-xl mb-6 text-center">
-        <h1 className="text-3xl font-black italic tracking-tighter mb-4 uppercase">WC 2026 SIMULATOR</h1>
-        <nav className="flex justify-center bg-blue-800 rounded-full p-1 max-w-sm mx-auto">
-          {["groups", "thirds", "bracket"].map(v => (
-            <button key={v} onClick={() => setView(v)} className={`px-4 py-2 rounded-full font-bold text-xs uppercase transition ${view === v ? 'bg-white text-blue-900 shadow-md' : 'text-blue-200 hover:text-white'}`}>
-              {v === "groups" ? "Grupos" : v === "thirds" ? "3º" : "Final"}
-            </button>
-          ))}
-        </nav>
+    <main className="min-h-screen bg-[#fcfdfe] text-slate-900 font-sans selection:bg-blue-100">
+      {/* Header Estilo Qatar/2026 */}
+      <header className="relative bg-blue-950 text-white pt-12 pb-20 px-6 overflow-hidden shadow-2xl">
+        <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20"></div>
+        <div className="absolute bottom-[-100px] right-[-100px] w-[500px] h-[500px] bg-red-600 rounded-full blur-[120px] opacity-10"></div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto flex flex-col items-center">
+          <span className="bg-red-600 text-[10px] font-black px-4 py-1.5 rounded-full mb-6 tracking-[0.3em] shadow-xl shadow-red-900/40 uppercase">
+            North America 2026
+          </span>
+          <h1 className="text-6xl font-black italic tracking-tighter mb-10 drop-shadow-2xl text-center leading-none">
+            WORLD CUP <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-white underline decoration-white underline-offset-8">SIMULATOR</span>
+          </h1>
+          
+          <nav className="flex justify-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-1.5 w-full max-w-lg shadow-2xl">
+            {["groups", "thirds", "bracket"].map(v => (
+              <button 
+                key={v} 
+                onClick={() => setView(v)} 
+                className={`flex-1 py-4 rounded-2xl font-black text-[11px] uppercase transition-all duration-500 tracking-widest ${
+                  view === v 
+                  ? 'bg-white text-blue-950 shadow-2xl scale-105' 
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {v === "groups" ? "Grupos" : v === "thirds" ? "Ranking 3º" : "Fase Final"}
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 mb-8 flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-200">
-        <div className="font-black text-blue-800 text-sm">⚽ {totalGoals} GOLES TOTALES</div>
-        <div className="flex gap-2">
-          <button onClick={simulateGroups} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-700 transition">Simular Todo</button>
-          <button onClick={generateKnockout} className="bg-amber-500 text-slate-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-600 transition shadow-lg">🏆 Generar 32avos</button>
+      {/* Barra de Estadísticas */}
+      <div className="max-w-7xl mx-auto px-4 -mt-10 mb-12 relative z-20">
+        <div className="bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] shadow-2xl border border-white flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center gap-3">
+              <span className="text-3xl">⚽</span>
+              <div>
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">Total Goles</p>
+                <p className="text-2xl font-black text-blue-900 leading-none">{totalGoals}</p>
+              </div>
+            </div>
+            <div className="h-10 w-px bg-slate-100 hidden md:block"></div>
+            <div className="hidden md:block">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+              <p className="text-sm font-black text-green-600 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> LIVE SIMULATION
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <button onClick={simulateGroups} className="flex-1 md:flex-none bg-slate-900 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-lg">Simular Grupos</button>
+            <button onClick={generateKnockout} className="flex-1 md:flex-none bg-red-600 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all active:scale-95 shadow-xl shadow-red-200">Generar Fase Final</button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4">
         {view === "groups" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-1 flex lg:flex-col gap-2 overflow-x-auto no-scrollbar pb-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Selector de Grupos */}
+            <div className="lg:col-span-1 flex lg:flex-col gap-3 overflow-x-auto no-scrollbar pb-2">
               {Object.keys(INITIAL_GROUPS).map(g => (
-                <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-10 h-10 rounded-xl font-black transition ${activeGroup === g ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-white text-slate-400 border'}`}>{g}</button>
+                <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-12 h-12 rounded-2xl font-black transition-all duration-300 border-2 ${activeGroup === g ? 'bg-blue-600 text-white border-blue-600 shadow-xl scale-110' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{g}</button>
               ))}
             </div>
-            <div className="lg:col-span-7 space-y-2">
+            {/* Partidos */}
+            <div className="lg:col-span-7 space-y-3">
               {matches.filter(m => m.group === activeGroup).map(m => (
-                <div key={m.id} className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm">
+                <div key={m.id} className="bg-white p-6 rounded-[2rem] border border-slate-50 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
                   <div className="w-1/3 text-right"><TeamLabel name={m.home} /></div>
-                  <div className="flex gap-2"><input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} className="w-10 h-10 text-center rounded-xl bg-slate-50 font-black border border-slate-200" /><input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} className="w-10 h-10 text-center rounded-xl bg-slate-50 font-black border border-slate-200" /></div>
+                  <div className="flex gap-3 px-6">
+                    <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} className="w-12 h-12 text-center rounded-2xl bg-slate-50 font-black border-2 border-slate-100 focus:border-blue-400 focus:outline-none transition-colors text-xl" />
+                    <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} className="w-12 h-12 text-center rounded-2xl bg-slate-50 font-black border-2 border-slate-100 focus:border-blue-400 focus:outline-none transition-colors text-xl" />
+                  </div>
                   <div className="w-1/3"><TeamLabel name={m.away} /></div>
                 </div>
               ))}
             </div>
-            <div className="lg:col-span-4 bg-white rounded-3xl shadow-xl p-5 border border-slate-200 h-fit">
-              <h2 className="font-black mb-4 text-center text-xs uppercase text-slate-400 tracking-widest italic">Tabla Grupo {activeGroup}</h2>
-              {getTable(activeGroup).map((t, i) => (
-                <div key={t.name} className={`flex justify-between items-center p-3 mb-1 rounded-2xl ${i < 2 ? 'bg-green-50' : i === 2 ? 'bg-amber-50' : ''}`}>
-                  <div className="flex items-center gap-2"><span className="text-[10px] font-black text-slate-300">#{i+1}</span><TeamLabel name={t.name} size="w-5" /></div>
-                  <span className="font-black text-blue-700">{t.pts} <span className="text-[9px]">PTS</span></span>
+            {/* Tabla */}
+            <div className="lg:col-span-4 h-fit sticky top-6">
+              <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-slate-50">
+                <h2 className="font-black mb-8 text-center text-[10px] uppercase text-blue-400 tracking-[0.3em]">Clasificación Grupo {activeGroup}</h2>
+                <div className="space-y-3">
+                  {getTable(activeGroup).map((t, i) => (
+                    <div key={t.name} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${i < 2 ? 'bg-green-50/50' : i === 2 ? 'bg-amber-50/50' : 'opacity-60'}`}>
+                      <div className="flex items-center gap-3"><span className="text-[10px] font-black text-slate-300 w-4">#{i+1}</span><TeamLabel name={t.name} size="w-6" /></div>
+                      <span className="font-black text-slate-900">{t.pts} <span className="text-[9px] text-slate-400">PTS</span></span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         )}
 
         {view === "thirds" && (
-          <div className="max-w-md mx-auto bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200">
-            <h2 className="text-xl font-black mb-6 text-center italic uppercase text-blue-900 underline decoration-amber-400 underline-offset-8">Ranking de Terceros</h2>
-            {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).filter(t => t).sort((a,b) => b.pts - a.pts).map((t, i) => (
-              <div key={t.name} className={`flex justify-between items-center p-4 mb-2 rounded-2xl ${i < 8 ? 'bg-blue-50 border border-blue-100' : 'opacity-40 grayscale'}`}>
-                <div className="flex items-center gap-3"><span className="font-black text-slate-300">#{i+1}</span><TeamLabel name={t.name} /></div>
-                <span className="font-black text-blue-600">{t.pts} PTS</span>
-              </div>
-            ))}
+          <div className="max-w-xl mx-auto bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-50">
+            <h2 className="text-2xl font-black mb-10 text-center italic uppercase text-blue-900 tracking-tighter">Ranking Mejores Terceros</h2>
+            <div className="space-y-3">
+              {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).filter(t => t).sort((a,b) => b.pts - a.pts).map((t, i) => (
+                <div key={t.name} className={`flex justify-between items-center p-5 rounded-[1.5rem] transition-all border ${i < 8 ? 'bg-blue-50/50 border-blue-100' : 'opacity-40 grayscale border-slate-100'}`}>
+                  <div className="flex items-center gap-4"><span className="font-black text-slate-300">#{i+1}</span><TeamLabel name={t.name} /></div>
+                  <span className="font-black text-blue-700 text-lg">{t.pts} <span className="text-xs">PTS</span></span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {view === "bracket" && (
-          <div className="flex gap-6 overflow-x-auto pb-10 no-scrollbar items-start">
-            {["32avos", "Octavos", "Cuartos", "Semis", "FINAL"].map(round => (
-              <div key={round} className="w-64 flex-shrink-0">
-                <h3 className="text-center font-black text-slate-400 text-[10px] mb-6 uppercase tracking-widest border-b pb-2">{round}</h3>
-                <div className="flex flex-col gap-4">
+          <div className="flex gap-8 overflow-x-auto pb-16 no-scrollbar items-start px-4">
+            {["32avos", "Octavos", "Cuartos", "Semis", "FINAL"].map((round, rIdx) => (
+              <div key={round} className="w-72 flex-shrink-0">
+                <h3 className="text-center font-black text-slate-400 text-[10px] mb-8 uppercase tracking-[0.4em] border-b border-slate-100 pb-4 italic">{round}</h3>
+                <div className="flex flex-col gap-6">
                   {bracket.filter(m => m.round === round).map(m => {
                     const isDraw = m.played && m.scoreH === m.scoreA && m.teamH !== "TBD" && m.teamA !== "TBD";
                     return (
-                      <div key={m.id} className={`p-4 rounded-[2rem] shadow-lg border-2 bg-white transition-all ${round === 'FINAL' ? 'border-amber-400' : 'border-white'}`}>
-                        <div className="flex justify-between items-center mb-3">
+                      <div key={m.id} className={`p-6 rounded-[2.5rem] shadow-xl border-2 transition-all ${round === 'FINAL' ? 'border-amber-400 bg-amber-50/20' : 'border-white bg-white'}`}>
+                        <div className="flex justify-between items-center mb-4">
                           <TeamLabel name={m.teamH} />
-                          <div className="flex gap-1">
-                            {isDraw && <input type="number" placeholder="P" value={m.penH} onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} className="w-7 h-7 bg-amber-50 text-[10px] text-center rounded-lg border border-amber-200 font-bold" />}
-                            <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, true)} className="w-9 h-9 bg-slate-50 text-center rounded-xl font-black border border-slate-100" />
+                          <div className="flex gap-1.5 items-center">
+                            {isDraw && <input type="number" placeholder="P" value={m.penH} onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} className="w-8 h-8 bg-amber-100 text-[10px] text-center rounded-lg border border-amber-200 font-black" />}
+                            <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, true)} className="w-10 h-10 bg-slate-50 text-center rounded-xl font-black border-2 border-slate-100 focus:border-blue-400 focus:outline-none text-lg" />
                           </div>
                         </div>
                         <div className="flex justify-between items-center">
                           <TeamLabel name={m.teamA} />
-                          <div className="flex gap-1">
-                            {isDraw && <input type="number" placeholder="P" value={m.penA} onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} className="w-7 h-7 bg-amber-50 text-[10px] text-center rounded-lg border border-amber-200 font-bold" />}
-                            <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} className="w-9 h-9 bg-slate-50 text-center rounded-xl font-black border border-slate-100" />
+                          <div className="flex gap-1.5 items-center">
+                            {isDraw && <input type="number" placeholder="P" value={m.penA} onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} className="w-8 h-8 bg-amber-100 text-[10px] text-center rounded-lg border border-amber-200 font-black" />}
+                            <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} className="w-10 h-10 bg-slate-50 text-center rounded-xl font-black border-2 border-slate-100 focus:border-blue-400 focus:outline-none text-lg" />
                           </div>
                         </div>
                       </div>
@@ -312,6 +323,51 @@ export default function WorldCupApp() {
 
       {/* SECCIÓN DE NOTICIAS FIFA */}
       <WorldCupNews />
+
+      {/* Footer */}
+      <footer className="py-20 text-center border-t border-slate-100 bg-white">
+        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">Mundial 2026 Simulator • Hebert Struve</p>
+        <div className="flex justify-center gap-6">
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          <div className="w-2 h-2 bg-blue-900 rounded-full"></div>
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+        </div>
+      </footer>
     </main>
   );
 }
+
+// --- GENERADORES (Fuera del componente para evitar recreación) ---
+const generateInitialMatches = () => {
+  const m: any[] = [];
+  Object.keys(INITIAL_GROUPS).forEach(g => {
+    const t = INITIAL_GROUPS[g];
+    const pairs = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
+    pairs.forEach((p, i) => m.push({ id: `${g}-${i}`, group: g, home: t[p[0]].name, away: t[p[1]].name, scoreH: 0, scoreA: 0, played: false }));
+  });
+  return m;
+};
+
+const generateInitialBracket = () => {
+  const rounds = [
+    { name: "32avos", count: 16, prefix: "R32" },
+    { name: "Octavos", count: 8, prefix: "R16" },
+    { name: "Cuartos", count: 4, prefix: "QF" },
+    { name: "Semis", count: 2, prefix: "SF" },
+    { name: "FINAL", count: 1, prefix: "FINAL" }
+  ];
+  const b: any[] = [];
+  rounds.forEach((round, rIdx) => {
+    for (let i = 1; i <= round.count; i++) {
+      b.push({ 
+        id: `${round.prefix}-${i}`, 
+        round: round.name, 
+        teamH: "TBD", teamA: "TBD", 
+        scoreH: 0, scoreA: 0, penH: 0, penA: 0, 
+        winner: null, played: false, 
+        next: rounds[rIdx + 1] ? `${rounds[rIdx + 1].prefix}-${Math.ceil(i / 2)}` : null 
+      });
+    }
+  });
+  return b;
+};
