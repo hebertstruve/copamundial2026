@@ -22,8 +22,8 @@ const INITIAL_GROUPS: any = {
 // --- COMPONENTE DE NOTICIAS ---
 const WorldCupNews = () => {
   const news = [
-    { id: 1, title: "Calendario confirmado: Sedes listas", summary: "La FIFA anunció fechas clave para el Mundial 2026.", image: "https://digitalhub.fifa.com/transform/54504193-41c0-4318-86d1-4328f415951d/World-Cup-2026-Generic-Image", link: "https://www.fifa.com", tag: "OFICIAL" },
-    { id: 2, title: "Formato de 48 selecciones", summary: "Grupos de 4 equipos y nueva ronda de 32avos.", image: "https://digitalhub.fifa.com/transform/7ec731b7-789a-41f2-9594-540c49cc8c3c/1498187816", link: "https://www.fifa.com", tag: "FORMATO" }
+    { id: 1, title: "Sedes listas", summary: "FIFA anunció fechas para el 2026.", image: "https://digitalhub.fifa.com/transform/54504193-41c0-4318-86d1-4328f415951d/World-Cup-2026-Generic-Image", link: "https://www.fifa.com", tag: "OFICIAL" },
+    { id: 2, title: "Formato 48 selecciones", summary: "Nueva ronda de 32avos.", image: "https://digitalhub.fifa.com/transform/7ec731b7-789a-41f2-9594-540c49cc8c3c/1498187816", link: "https://www.fifa.com", tag: "FORMATO" }
   ];
 
   return (
@@ -34,8 +34,7 @@ const WorldCupNews = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {news.map((n) => (
-          <motion.a whileHover={{ scale: 1.02 }} key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" 
-             className="group bg-white rounded-2xl overflow-hidden shadow-md border border-slate-100 flex transition-all">
+          <motion.a whileHover={{ scale: 1.02 }} key={n.id} href={n.link} target="_blank" className="bg-white rounded-2xl overflow-hidden shadow-md border border-slate-100 flex transition-all">
             <div className="w-24 h-24 overflow-hidden">
               <img src={n.image} alt={n.title} className="w-full h-full object-cover" />
             </div>
@@ -50,7 +49,7 @@ const WorldCupNews = () => {
   );
 };
 
-// --- COMPONENTES AUXILIARES ---
+// --- ETIQUETA DE EQUIPO ---
 const TeamLabel = ({ name, size = "w-5" }: { name: string, size?: string }) => {
   const allTeams = Object.values(INITIAL_GROUPS).flat() as any[];
   const team = allTeams.find(t => t.name === name);
@@ -81,12 +80,19 @@ export default function WorldCupApp() {
     if (bracket.length > 0) localStorage.setItem('wc26-v12-b', JSON.stringify(bracket));
   }, [matches, bracket]);
 
-  // --- FUNCIÓN PARA COLOR INTERACTIVO DE MARCADOR ---
   const getScoreColor = (scoreThis: number, scoreThat: number, played: boolean) => {
     if (!played) return 'bg-slate-50 border-slate-100 text-slate-900';
-    if (scoreThis > scoreThat) return 'bg-green-100 border-green-200 text-green-700';
+    if (scoreThis > scoreThat) return 'bg-green-100 border-green-200 text-green-700 font-black';
     if (scoreThis < scoreThat) return 'bg-red-50 border-red-100 text-red-600';
-    return 'bg-amber-50 border-amber-200 text-amber-700'; // Empate
+    return 'bg-amber-50 border-amber-200 text-amber-700';
+  };
+
+  const resetAll = () => {
+    if (!confirm("¿Seguro que quieres borrar todos los resultados?")) return;
+    setMatches(generateInitialMatches());
+    setBracket(generateInitialBracket());
+    localStorage.removeItem('wc26-v12-m');
+    localStorage.removeItem('wc26-v12-b');
   };
 
   const getTable = (groupId: string) => {
@@ -101,7 +107,7 @@ export default function WorldCupApp() {
         if (m.scoreH > m.scoreA) h.pts += 3; else if (m.scoreA > m.scoreH) a.pts += 3; else { h.pts += 1; a.pts += 1; }
       }
     });
-    return teams.sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf);
+    return teams.sort((a,b) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc))
   };
 
   const handleScoreChange = (id: string, side: string, val: string, isBracket: boolean) => {
@@ -136,11 +142,6 @@ export default function WorldCupApp() {
     }
   };
 
-  const simulateGroups = () => {
-    if (!confirm("¿Simular?")) return;
-    setMatches(matches.map(m => ({ ...m, scoreH: Math.floor(Math.random() * 4), scoreA: Math.floor(Math.random() * 4), played: true })));
-  };
-
   const generateKnockout = () => {
     const winners: any[] = [];
     const runnersUp: any[] = [];
@@ -163,6 +164,7 @@ export default function WorldCupApp() {
     setView("bracket");
   };
 
+  // --- AQUÍ SE AGREGA LA VARIABLE FALTANTE ---
   const totalGoals = matches.reduce((acc, m) => acc + (m.scoreH + m.scoreA), 0);
 
   return (
@@ -185,25 +187,43 @@ export default function WorldCupApp() {
           <div className="bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-3">
             <span className="text-xl">⚽</span>
             <div>
-              <p className="text-[7px] font-black text-blue-400 uppercase leading-none">Total Goles</p>
-              <p className="text-lg font-black text-blue-900 leading-none">{totalGoals}</p>
+              <p className="text-[7px] font-black text-blue-400 uppercase leading-none text-left">Total Goles</p>
+              <p className="text-lg font-black text-blue-900 leading-none text-left">{totalGoals}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={simulateGroups} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Simular</button>
-            <button onClick={generateKnockout} className="bg-red-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Generar Final</button>
+          
+          <div className="flex gap-2 items-center">
+            <button 
+              onClick={resetAll} 
+              className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-red-100"
+            >
+              Reiniciar
+            </button>
+            
+            <button 
+              onClick={() => setMatches(matches.map(m => ({ ...m, scoreH: Math.floor(Math.random() * 4), scoreA: Math.floor(Math.random() * 4), played: true })))} 
+              className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all"
+            >
+              Simular
+            </button>
+            
+            <button 
+              onClick={generateKnockout} 
+              className="bg-red-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+            >
+              Generar Final
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
-        {/* ANIMACIÓN DE ENTRADA AL CAMBIAR VISTA */}
         <AnimatePresence mode="wait">
           {view === "groups" && (
-            <motion.div key="groups" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <motion.div key="groups" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-1 flex lg:flex-col gap-1.5 overflow-x-auto pb-2">
                 {Object.keys(INITIAL_GROUPS).map(g => (
-                  <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-8 h-8 rounded-lg font-black text-xs transition-all border-2 ${activeGroup === g ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-400 border-slate-50'}`}>{g}</button>
+                  <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-8 h-8 rounded-lg font-black text-xs transition-all border-2 ${activeGroup === g ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105' : 'bg-white text-slate-400 border-slate-50'}`}>{g}</button>
                 ))}
               </div>
               <div className="lg:col-span-7 space-y-1.5">
@@ -212,9 +232,9 @@ export default function WorldCupApp() {
                     <div className="w-1/3 text-right"><TeamLabel name={m.home} /></div>
                     <div className="flex gap-2 px-2">
                       <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} 
-                        className={`w-8 h-8 text-center rounded-lg font-black border text-sm outline-none transition-all ${getScoreColor(m.scoreH, m.scoreA, m.played)}`} />
+                        className={`w-8 h-8 text-center rounded-lg font-black border transition-all text-sm outline-none ${getScoreColor(m.scoreH, m.scoreA, m.played)}`} />
                       <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} 
-                        className={`w-8 h-8 text-center rounded-lg font-black border text-sm outline-none transition-all ${getScoreColor(m.scoreA, m.scoreH, m.played)}`} />
+                        className={`w-8 h-8 text-center rounded-lg font-black border transition-all text-sm outline-none ${getScoreColor(m.scoreA, m.scoreH, m.played)}`} />
                     </div>
                     <div className="w-1/3"><TeamLabel name={m.away} /></div>
                   </motion.div>
@@ -222,7 +242,7 @@ export default function WorldCupApp() {
               </div>
               <div className="lg:col-span-4 h-fit sticky top-4">
                 <div className="bg-white rounded-2xl shadow-lg p-5 border border-slate-50">
-                  <h2 className="font-black mb-4 text-center text-[8px] uppercase text-blue-400 tracking-widest italic">Grupo {activeGroup}</h2>
+                  <h2 className="font-black mb-4 text-center text-[8px] uppercase text-blue-400 tracking-widest italic tracking-tighter">Clasificación Grupo {activeGroup}</h2>
                   <div className="space-y-1.5">
                     {getTable(activeGroup).map((t, i) => (
                       <motion.div layout key={t.name} className={`flex justify-between items-center p-2 rounded-lg transition-all ${i < 2 ? 'bg-green-50/50' : i === 2 ? 'bg-amber-50/50' : 'opacity-60'}`}>
@@ -238,7 +258,7 @@ export default function WorldCupApp() {
 
           {view === "thirds" && (
             <motion.div key="thirds" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-2xl border border-slate-50">
-              <h2 className="text-lg font-black mb-6 text-center uppercase text-blue-900 tracking-tight">Mejores Terceros</h2>
+              <h2 className="text-lg font-black mb-6 text-center uppercase text-blue-900 tracking-tight italic">Mejores Terceros</h2>
               <div className="space-y-2">
                 {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).filter(t => t).sort((a,b) => b.pts - a.pts).map((t, i) => (
                   <div key={t.name} className={`flex justify-between items-center p-3 rounded-xl border ${i < 8 ? 'bg-blue-50/50 border-blue-100' : 'opacity-40 border-slate-50'}`}>
@@ -250,40 +270,54 @@ export default function WorldCupApp() {
             </motion.div>
           )}
 
-          {view === "bracket" && (
-            <motion.div key="bracket" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-4 overflow-x-auto pb-10 no-scrollbar px-2">
-              {["32avos", "Octavos", "Cuartos", "Semis", "FINAL"].map(round => (
-                <div key={round} className="w-56 flex-shrink-0">
-                  <h3 className="text-center font-black text-slate-400 text-[8px] mb-4 uppercase tracking-widest">{round}</h3>
-                  <div className="flex flex-col gap-3">
-                    {bracket.filter(m => m.round === round).map(m => {
-                      const isDraw = m.played && m.scoreH === m.scoreA && m.teamH !== "TBD" && m.teamA !== "TBD";
-                      return (
-                        <motion.div layout key={m.id} className={`p-3 rounded-2xl shadow-md border ${round === 'FINAL' ? 'border-amber-400 bg-amber-50/10' : 'border-white bg-white hover:border-blue-100 transition-colors'}`}>
-                          <div className="flex justify-between items-center mb-2">
-                            <TeamLabel name={m.teamH} />
-                            <div className="flex gap-1 items-center">
-                              {isDraw && <input type="number" placeholder="P" value={m.penH} onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} className="w-6 h-6 bg-amber-50 text-[8px] text-center rounded border border-amber-200" />}
+{view === "bracket" && (
+          <motion.div key="bracket" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-6 overflow-x-auto pb-10 no-scrollbar px-2">
+            {["32avos", "Octavos", "Cuartos", "Semis", "FINAL"].map(round => (
+              <div key={round} className="w-64 flex-shrink-0"> {/* Aumentado de w-56 a w-64 */}
+                <h3 className="text-center font-black text-slate-400 text-[8px] mb-4 uppercase tracking-widest">{round}</h3>
+                <div className="flex flex-col gap-3">
+                  {bracket.filter(m => m.round === round).map(m => {
+                    const isDraw = m.played && m.scoreH === m.scoreA && m.teamH !== "TBD" && m.teamA !== "TBD";
+                    return (
+                      <motion.div layout key={m.id} className={`p-4 rounded-2xl shadow-md border ${round === 'FINAL' ? 'border-amber-400 bg-amber-50/10' : 'border-white bg-white hover:border-blue-100 transition-colors'}`}>
+                        <div className="flex justify-between items-center mb-3">
+                          <TeamLabel name={m.teamH} />
+                          <div className="flex gap-2 items-center"> {/* Aumentado gap de 1 a 2 */}
+                            {isDraw && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[6px] font-bold text-amber-500 uppercase">Pen</span>
+                                <input type="number" value={m.penH} onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} 
+                                  className="w-8 h-8 bg-amber-50 text-[10px] text-center rounded-lg border border-amber-200 font-bold focus:ring-1 focus:ring-amber-400 outline-none" />
+                              </div>
+                            )}
+                            <div className="flex flex-col items-center">
+                              <span className="text-[6px] font-bold text-slate-300 uppercase">Gol</span>
                               <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, true)} 
-                                className={`w-7 h-7 text-center rounded-lg font-black border text-xs outline-none ${getScoreColor(m.scoreH, m.scoreA, m.played)}`} />
+                                className={`w-9 h-9 text-center rounded-lg font-black border text-sm outline-none ${getScoreColor(m.scoreH, m.scoreA, m.played)}`} />
                             </div>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <TeamLabel name={m.teamA} />
-                            <div className="flex gap-1 items-center">
-                              {isDraw && <input type="number" placeholder="P" value={m.penA} onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} className="w-6 h-6 bg-amber-50 text-[8px] text-center rounded border border-amber-200" />}
-                              <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} 
-                                className={`w-7 h-7 text-center rounded-lg font-black border text-xs outline-none ${getScoreColor(m.scoreA, m.scoreH, m.played)}`} />
-                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <TeamLabel name={m.teamA} />
+                          <div className="flex gap-2 items-center">
+                            {isDraw && (
+                              <div className="flex flex-col items-center">
+                                <input type="number" value={m.penA} onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} 
+                                  className="w-8 h-8 bg-amber-50 text-[10px] text-center rounded-lg border border-amber-200 font-bold focus:ring-1 focus:ring-amber-400 outline-none" />
+                              </div>
+                            )}
+                            <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} 
+                              className={`w-9 h-9 text-center rounded-lg font-black border text-sm outline-none ${getScoreColor(m.scoreA, m.scoreH, m.played)}`} />
                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-              ))}
-            </motion.div>
-          )}
+              </div>
+            ))}
+          </motion.div>
+        )}
         </AnimatePresence>
       </div>
 
@@ -292,6 +326,7 @@ export default function WorldCupApp() {
   );
 }
 
+// --- GENERADORES ---
 const generateInitialMatches = () => {
   const m: any[] = [];
   Object.keys(INITIAL_GROUPS).forEach(g => {
