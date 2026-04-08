@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 
-// --- CONFIGURACIÓN DE EQUIPOS (MUNDIAL 48 EQUIPOS) ---
-const INITIAL_GROUPS = {
+// --- CONFIGURACIÓN DE EQUIPOS ---
+const INITIAL_GROUPS: any = {
   A: [{ name: "México", code: "mx", color: "#006847" }, { name: "USA", code: "us", color: "#002868" }, { name: "Canadá", code: "ca", color: "#FF0000" }, { name: "Panamá", code: "pa", color: "#DA121A" }],
   B: [{ name: "Argentina", code: "ar", color: "#74ACDF" }, { name: "Francia", code: "fr", color: "#002395" }, { name: "España", code: "es", color: "#FABD00" }, { name: "Marruecos", code: "ma", color: "#C1272D" }],
   C: [{ name: "Brasil", code: "br", color: "#CBAD23" }, { name: "Inglaterra", code: "gb-eng", color: "#CE1124" }, { name: "Japón", code: "jp", color: "#00008B" }, { name: "Ecuador", code: "ec", color: "#FFCC00" }],
@@ -18,11 +18,11 @@ const INITIAL_GROUPS = {
   L: [{ name: "Jamaica", code: "jm", color: "#FED100" }, { name: "Grecia", code: "gr", color: "#0D5EAF" }, { name: "N. Zelanda", code: "nz", color: "#000000" }, { name: "Camerún", code: "cm", color: "#007A5E" }]
 };
 
-// --- GENERADORES INICIALES ---
+// --- GENERADORES ---
 const generateInitialMatches = () => {
   const m: any[] = [];
   Object.keys(INITIAL_GROUPS).forEach(g => {
-    const t = INITIAL_GROUPS[g as keyof typeof INITIAL_GROUPS];
+    const t = INITIAL_GROUPS[g];
     const pairs = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
     pairs.forEach((p, i) => m.push({ id: `${g}-${i}`, group: g, home: t[p[0]].name, away: t[p[1]].name, scoreH: 0, scoreA: 0, played: false }));
   });
@@ -43,14 +43,9 @@ const generateInitialBracket = () => {
       b.push({ 
         id: `${round.prefix}-${i}`, 
         round: round.name, 
-        teamH: "TBD", 
-        teamA: "TBD", 
-        scoreH: 0, 
-        scoreA: 0, 
-        penH: 0,        // <--- Nuevos campos para penales
-        penA: 0,        // <--- Nuevos campos para penales
-        winner: null, 
-        played: false,  // <--- Nuevo campo para rastrear si se editó
+        teamH: "TBD", teamA: "TBD", 
+        scoreH: 0, scoreA: 0, penH: 0, penA: 0, 
+        winner: null, played: false, 
         next: rounds[rIdx + 1] ? `${rounds[rIdx + 1].prefix}-${Math.ceil(i / 2)}` : null 
       });
     }
@@ -59,7 +54,7 @@ const generateInitialBracket = () => {
 };
 
 const TeamLabel = ({ name, size = "w-6" }: { name: string, size?: string }) => {
-  const allTeams = Object.values(INITIAL_GROUPS).flat();
+  const allTeams = Object.values(INITIAL_GROUPS).flat() as any[];
   const team = allTeams.find(t => t.name === name);
   if (!team) return <span className="font-bold text-slate-300 italic text-xs">TBD</span>;
   return (
@@ -77,33 +72,34 @@ export default function WorldCupApp() {
   const [bracket, setBracket] = useState<any[]>([]);
 
   useEffect(() => {
-    const m = localStorage.getItem('wc26-v9-m');
-    const b = localStorage.getItem('wc26-v9-b');
+    const m = localStorage.getItem('wc26-v11-m');
+    const b = localStorage.getItem('wc26-v11-b');
     setMatches(m ? JSON.parse(m) : generateInitialMatches());
     setBracket(b ? JSON.parse(b) : generateInitialBracket());
   }, []);
 
   useEffect(() => {
-    if (matches.length > 0) localStorage.setItem('wc26-v9-m', JSON.stringify(matches));
-    if (bracket.length > 0) localStorage.setItem('wc26-v9-b', JSON.stringify(bracket));
+    if (matches.length > 0) localStorage.setItem('wc26-v11-m', JSON.stringify(matches));
+    if (bracket.length > 0) localStorage.setItem('wc26-v11-b', JSON.stringify(bracket));
   }, [matches, bracket]);
 
   const getTable = (groupId: string) => {
-    const teams = INITIAL_GROUPS[groupId as keyof typeof INITIAL_GROUPS].map(t => ({ 
-      name: t.name, pj: 0, gf: 0, gc: 0, pts: 0 
-    }));
+    const groupTeams = INITIAL_GROUPS[groupId];
+    if (!groupTeams) return [];
+    const teams = groupTeams.map((t: any) => ({ name: t.name, pj: 0, gf: 0, gc: 0, pts: 0 }));
     matches.filter(m => m.group === groupId && m.played).forEach(m => {
-      const h = teams.find(t => t.name === m.home)!;
-      const a = teams.find(t => t.name === m.away)!;
-      h.pj++; a.pj++; h.gf += m.scoreH; h.gc += m.scoreA; a.gf += m.scoreA; a.gc += m.scoreH;
-      if (m.scoreH > m.scoreA) h.pts += 3; else if (m.scoreA > m.scoreH) a.pts += 3; else { h.pts += 1; a.pts += 1; }
+      const h = teams.find((t: any) => t.name === m.home);
+      const a = teams.find((t: any) => t.name === m.away);
+      if (h && a) {
+        h.pj++; a.pj++; h.gf += m.scoreH; h.gc += m.scoreA; a.gf += m.scoreA; a.gc += m.scoreH;
+        if (m.scoreH > m.scoreA) h.pts += 3; else if (m.scoreA > m.scoreH) a.pts += 3; else { h.pts += 1; a.pts += 1; }
+      }
     });
-    return teams.sort((a, b) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf);
+    return teams.sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf);
   };
 
   const handleScoreChange = (id: string, side: string, val: string, isBracket: boolean) => {
     const v = Math.max(0, parseInt(val) || 0);
-
     if (!isBracket) {
       setMatches(prev => prev.map(m => m.id === id ? { ...m, [side]: v, played: true } : m));
     } else {
@@ -112,13 +108,10 @@ export default function WorldCupApp() {
         const idx = newB.findIndex(m => m.id === id);
         const m = { ...newB[idx], [side]: v, played: true };
         
-        // Reset penales si el marcador principal deja de ser empate
         if ((side === 'scoreH' || side === 'scoreA') && m.scoreH !== m.scoreA) {
-          m.penH = 0;
-          m.penA = 0;
+          m.penH = 0; m.penA = 0;
         }
 
-        // Lógica de Ganador
         let winner = null;
         if (m.scoreH > m.scoreA) winner = m.teamH;
         else if (m.scoreA > m.scoreH) winner = m.teamA;
@@ -128,12 +121,14 @@ export default function WorldCupApp() {
         m.winner = winner;
         newB[idx] = m;
 
-        // Propagar al siguiente partido
         if (m.winner && m.next) {
           const nIdx = newB.findIndex(nb => nb.id === m.next);
-          const matchNum = parseInt(id.split('-')[1]);
-          if (matchNum % 2 !== 0) newB[nIdx].teamH = m.winner; 
-          else newB[nIdx].teamA = m.winner;
+          if (nIdx !== -1) {
+            // ARREGLO AQUÍ: Convertimos el ID a número para que Vercel no llore
+            const matchNum = Number(id.split('-')[1]);
+            if (matchNum % 2 !== 0) newB[nIdx].teamH = m.winner; 
+            else newB[nIdx].teamA = m.winner;
+          }
         }
 
         if (id === "FINAL-1" && m.winner) confetti({ particleCount: 150, spread: 70 });
@@ -143,158 +138,114 @@ export default function WorldCupApp() {
   };
 
   const simulateGroups = () => {
-    if (!confirm("¿Simular todos los resultados?")) return;
-    setMatches(matches.map(m => ({
-      ...m, scoreH: Math.floor(Math.random() * 4), scoreA: Math.floor(Math.random() * 4), played: true
-    })));
-  };
-
-  const resetTournament = () => {
-    if (!confirm("¿Reiniciar todo?")) return;
-    setMatches(generateInitialMatches());
-    setBracket(generateInitialBracket());
-    setView("groups");
+    if (!confirm("¿Simular resultados?")) return;
+    setMatches(matches.map(m => ({ ...m, scoreH: Math.floor(Math.random() * 4), scoreA: Math.floor(Math.random() * 4), played: true })));
   };
 
   const generateKnockout = () => {
-    const winners: string[] = [];
-    const runnersUp: string[] = [];
+    const winners: any[] = [];
+    const runnersUp: any[] = [];
     const thirds: any[] = [];
     Object.keys(INITIAL_GROUPS).forEach(g => {
       const table = getTable(g);
-      winners.push(table[0].name); 
-      runnersUp.push(table[1].name); 
-      thirds.push({name: table[2].name, pts: table[2].pts, gd: table[2].gf - table[2].gc});
+      if (table.length >= 3) {
+        winners.push(table[0].name); runnersUp.push(table[1].name); 
+        thirds.push({name: table[2].name, pts: table[2].pts, gd: table[2].gf - table[2].gc});
+      }
     });
     const bestThirds = thirds.sort((a,b) => b.pts - a.pts || b.gd - a.gd).slice(0, 8).map(t => t.name);
     const qualified = [...winners, ...runnersUp, ...bestThirds];
-    
     const newB = generateInitialBracket();
     for (let i = 0; i < 16; i++) {
-      newB[i].teamH = qualified[i];
-      newB[i].teamA = qualified[31-i];
+      if (qualified[i]) newB[i].teamH = qualified[i];
+      if (qualified[31-i]) newB[i].teamA = qualified[31-i];
     }
     setBracket(newB);
     setView("bracket");
   };
 
+  const totalGoals = matches.reduce((acc, m) => acc + (m.scoreH + m.scoreA), 0);
+
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-900 pb-20 font-sans">
-      <header className="bg-blue-900 text-white p-6 shadow-xl mb-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-black italic tracking-tighter">WC 2026 SIM PRO</h1>
-          <nav className="flex bg-blue-800 rounded-full p-1 border border-blue-700">
-            {["groups", "thirds", "bracket"].map(v => (
-              <button key={v} onClick={() => setView(v)} className={`px-6 py-2 rounded-full font-bold text-xs uppercase transition-all ${view === v ? 'bg-white text-blue-900 shadow-md' : 'text-blue-200 hover:text-white'}`}>
-                {v === "groups" ? "Grupos" : v === "thirds" ? "Mejores 3º" : "Fase Final"}
-              </button>
-            ))}
-          </nav>
-        </div>
+    <main className="min-h-screen bg-slate-100 pb-20 font-sans">
+      <header className="bg-blue-900 text-white p-6 shadow-xl mb-6 text-center">
+        <h1 className="text-3xl font-black italic tracking-tighter mb-4">WC 2026 SIMULATOR</h1>
+        <nav className="flex justify-center bg-blue-800 rounded-full p-1 max-w-sm mx-auto">
+          {["groups", "thirds", "bracket"].map(v => (
+            <button key={v} onClick={() => setView(v)} className={`px-4 py-2 rounded-full font-bold text-xs uppercase transition ${view === v ? 'bg-white text-blue-900 shadow-md' : 'text-blue-200'}`}>
+              {v === "groups" ? "Grupos" : v === "thirds" ? "3º" : "Final"}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 mb-8">
-        <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-wrap gap-4 justify-between items-center">
-          <div className="flex gap-2">
-            <button onClick={simulateGroups} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition active:scale-95">⚡ Simular Grupos</button>
-            <button onClick={generateKnockout} className="bg-amber-500 text-slate-900 px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-amber-600 transition active:scale-95">🏆 Generar 32avos</button>
-          </div>
-          <button onClick={resetTournament} className="text-rose-500 font-bold text-xs uppercase px-5 py-2 hover:bg-rose-50 rounded-2xl transition">Reiniciar</button>
+      <div className="max-w-7xl mx-auto px-4 mb-8 flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm">
+        <div className="font-black text-blue-800">⚽ {totalGoals} GOLES</div>
+        <div className="flex gap-2">
+          <button onClick={simulateGroups} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-lg">Simular</button>
+          <button onClick={generateKnockout} className="bg-amber-500 text-slate-900 px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-lg">🏆 Generar 32avos</button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4">
         {view === "groups" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-1 flex lg:flex-col gap-2 overflow-x-auto no-scrollbar">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-1 flex lg:flex-col gap-2 overflow-x-auto no-scrollbar pb-2">
               {Object.keys(INITIAL_GROUPS).map(g => (
-                <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-12 h-12 rounded-xl font-black transition-all ${activeGroup === g ? 'bg-blue-600 text-white scale-110 shadow-lg' : 'bg-white text-slate-400 border'}`}>{g}</button>
+                <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 w-10 h-10 rounded-lg font-black transition ${activeGroup === g ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border'}`}>{g}</button>
               ))}
             </div>
-
-            <div className="lg:col-span-7 space-y-3">
+            <div className="lg:col-span-7 space-y-2">
               {matches.filter(m => m.group === activeGroup).map(m => (
-                <div key={m.id} className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center shadow-sm">
-                  <div className="flex-1 flex justify-end px-2"><TeamLabel name={m.home} /></div>
-                  <div className="flex gap-2 items-center bg-slate-50 p-2 rounded-2xl">
-                    <input type="number" min="0" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} className="w-12 h-12 text-center bg-white rounded-xl font-black text-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none shadow-inner" />
-                    <span className="text-slate-300 font-bold text-xs uppercase">Vs</span>
-                    <input type="number" min="0" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} className="w-12 h-12 text-center bg-white rounded-xl font-black text-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none shadow-inner" />
-                  </div>
-                  <div className="flex-1 flex justify-start px-2"><TeamLabel name={m.away} /></div>
+                <div key={m.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div className="w-1/3 text-right"><TeamLabel name={m.home} /></div>
+                  <div className="flex gap-2"><input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} className="w-10 h-10 text-center rounded-lg bg-slate-50 font-bold" /><input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} className="w-10 h-10 text-center rounded-lg bg-slate-50 font-bold" /></div>
+                  <div className="w-1/3"><TeamLabel name={m.away} /></div>
                 </div>
               ))}
             </div>
-
-            <div className="lg:col-span-4 bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200 h-fit">
-              <h2 className="bg-slate-900 text-white p-4 font-black text-center text-[11px] uppercase tracking-widest italic">Tabla Grupo {activeGroup}</h2>
-              <div className="p-4">
-                <table className="w-full text-xs">
-                  <thead><tr className="text-slate-400 font-black border-b text-left"><th className="pb-2">Equipo</th><th className="pb-2 text-center">DG</th><th className="pb-2 text-center text-blue-600">PTS</th></tr></thead>
-                  <tbody>
-                    {getTable(activeGroup).map((t, i) => (
-                      <tr key={t.name} className="border-b border-slate-50 last:border-0">
-                        <td className="py-3 flex items-center gap-2"><span className={`w-1 h-4 rounded-full ${i < 2 ? 'bg-green-500' : i === 2 ? 'bg-amber-400' : 'bg-slate-200'}`}></span><TeamLabel name={t.name} size="w-5" /></td>
-                        <td className="py-3 text-center font-bold text-slate-500">{t.gf - t.gc}</td>
-                        <td className="py-3 text-center font-black text-blue-600">{t.pts}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="lg:col-span-4 bg-white rounded-2xl shadow-md p-4 h-fit">
+              <h2 className="font-black mb-4 text-center">Grupo {activeGroup}</h2>
+              {getTable(activeGroup).map((t, i) => (
+                <div key={t.name} className={`flex justify-between p-2 mb-1 rounded-lg ${i < 2 ? 'bg-green-50' : i === 2 ? 'bg-amber-50' : ''}`}><TeamLabel name={t.name} /> <span className="font-black">{t.pts} PTS</span></div>
+              ))}
             </div>
           </div>
         )}
 
         {view === "thirds" && (
-          <div className="max-w-2xl mx-auto bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200">
-            <h2 className="text-2xl font-black mb-6 text-center italic uppercase tracking-tighter">Ranking de Terceros</h2>
-            <div className="space-y-3">
-              {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).sort((a,b) => b.pts - a.pts || b.gf-b.gc - (a.gf-a.gc)).map((t, i) => (
-                <div key={t.name} className={`flex justify-between items-center p-4 rounded-2xl ${i < 8 ? 'bg-green-50 border border-green-100' : 'opacity-40 grayscale'}`}>
-                  <div className="flex items-center gap-4"><span className="font-black text-slate-400 text-sm">#{i+1}</span><TeamLabel name={t.name} /></div>
-                  <div className="font-black text-blue-600">{t.pts} PTS</div>
-                </div>
-              ))}
-            </div>
+          <div className="max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl">
+            <h2 className="text-xl font-black mb-4 text-center underline">Ranking de Terceros</h2>
+            {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).filter(t => t).sort((a,b) => b.pts - a.pts).map((t, i) => (
+              <div key={t.name} className={`flex justify-between p-3 mb-2 rounded-xl ${i < 8 ? 'bg-blue-50' : 'opacity-40'}`}><TeamLabel name={t.name} /> <span className="font-bold text-blue-600">{t.pts} PTS</span></div>
+            ))}
           </div>
         )}
 
         {view === "bracket" && (
-          <div className="flex gap-8 overflow-x-auto pb-12 no-scrollbar items-start">
+          <div className="flex gap-4 overflow-x-auto pb-10 no-scrollbar">
             {["32avos", "Octavos", "Cuartos", "Semis", "FINAL"].map(round => (
-              <div key={round} className="flex-shrink-0 w-72">
-                <h3 className="text-center font-black text-slate-400 text-[10px] mb-8 uppercase border-b pb-3 tracking-widest">{round}</h3>
-                <div className="flex flex-col gap-6">
+              <div key={round} className="w-64 flex-shrink-0">
+                <h3 className="text-center font-black text-slate-400 text-xs mb-6 uppercase tracking-widest">{round}</h3>
+                <div className="flex flex-col gap-4">
                   {bracket.filter(m => m.round === round).map(m => {
                     const isDraw = m.played && m.scoreH === m.scoreA && m.teamH !== "TBD" && m.teamA !== "TBD";
                     return (
-                      <div key={m.id} className={`p-5 rounded-[2.5rem] shadow-xl border-2 transition-all bg-white ${m.round === 'FINAL' ? 'border-amber-400 ring-4 ring-amber-50' : 'border-white'}`}>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <TeamLabel name={m.teamH} />
-                            <div className="flex items-center gap-1.5">
-                              {isDraw && (
-                                <input type="number" min="0" value={m.penH} placeholder="P" onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} className="w-8 h-8 text-center rounded-lg bg-amber-100 text-amber-900 text-xs font-black border border-amber-200" />
-                              )}
-                              <input type="number" min="0" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, true)} className="w-10 h-10 text-center rounded-xl font-black text-base bg-slate-50 shadow-inner border-none" />
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <TeamLabel name={m.teamA} />
-                            <div className="flex items-center gap-1.5">
-                              {isDraw && (
-                                <input type="number" min="0" value={m.penA} placeholder="P" onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} className="w-8 h-8 text-center rounded-lg bg-amber-100 text-amber-900 text-xs font-black border border-amber-200" />
-                              )}
-                              <input type="number" min="0" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} className="w-10 h-10 text-center rounded-xl font-black text-base bg-slate-50 shadow-inner border-none" />
-                            </div>
+                      <div key={m.id} className="p-4 bg-white rounded-2xl shadow-md border border-slate-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <TeamLabel name={m.teamH} />
+                          <div className="flex gap-1">
+                            {isDraw && <input type="number" value={m.penH} onChange={e => handleScoreChange(m.id, 'penH', e.target.value, true)} className="w-7 h-7 bg-amber-50 text-xs text-center rounded border" />}
+                            <input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, true)} className="w-8 h-8 bg-slate-50 text-center rounded font-bold" />
                           </div>
                         </div>
-                        {isDraw && (
-                          <div className="mt-3 text-[9px] font-black text-amber-500 uppercase text-center italic animate-pulse tracking-tighter">
-                            Ingresa resultado de penales
+                        <div className="flex justify-between items-center">
+                          <TeamLabel name={m.teamA} />
+                          <div className="flex gap-1">
+                            {isDraw && <input type="number" value={m.penA} onChange={e => handleScoreChange(m.id, 'penA', e.target.value, true)} className="w-7 h-7 bg-amber-50 text-xs text-center rounded border" />}
+                            <input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, true)} className="w-8 h-8 bg-slate-50 text-center rounded font-bold" />
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
