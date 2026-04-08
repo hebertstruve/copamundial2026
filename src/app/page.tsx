@@ -72,15 +72,15 @@ export default function WorldCupApp() {
   const [bracket, setBracket] = useState<any[]>([]);
 
   useEffect(() => {
-    const m = localStorage.getItem('wc26-v11-m');
-    const b = localStorage.getItem('wc26-v11-b');
+    const m = localStorage.getItem('wc26-v12-m');
+    const b = localStorage.getItem('wc26-v12-b');
     setMatches(m ? JSON.parse(m) : generateInitialMatches());
     setBracket(b ? JSON.parse(b) : generateInitialBracket());
   }, []);
 
   useEffect(() => {
-    if (matches.length > 0) localStorage.setItem('wc26-v11-m', JSON.stringify(matches));
-    if (bracket.length > 0) localStorage.setItem('wc26-v11-b', JSON.stringify(bracket));
+    if (matches.length > 0) localStorage.setItem('wc26-v12-m', JSON.stringify(matches));
+    if (bracket.length > 0) localStorage.setItem('wc26-v12-b', JSON.stringify(bracket));
   }, [matches, bracket]);
 
   const getTable = (groupId: string) => {
@@ -106,6 +106,8 @@ export default function WorldCupApp() {
       setBracket(prev => {
         const newB = [...prev];
         const idx = newB.findIndex(m => m.id === id);
+        if (idx === -1) return prev;
+        
         const m = { ...newB[idx], [side]: v, played: true };
         
         if ((side === 'scoreH' || side === 'scoreA') && m.scoreH !== m.scoreA) {
@@ -124,7 +126,7 @@ export default function WorldCupApp() {
         if (m.winner && m.next) {
           const nIdx = newB.findIndex(nb => nb.id === m.next);
           if (nIdx !== -1) {
-            // ARREGLO AQUÍ: Convertimos el ID a número para que Vercel no llore
+            // CORRECCIÓN AQUÍ: Convertimos a Number antes del % 2
             const matchNum = Number(id.split('-')[1]);
             if (matchNum % 2 !== 0) newB[nIdx].teamH = m.winner; 
             else newB[nIdx].teamA = m.winner;
@@ -182,8 +184,8 @@ export default function WorldCupApp() {
       <div className="max-w-7xl mx-auto px-4 mb-8 flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm">
         <div className="font-black text-blue-800">⚽ {totalGoals} GOLES</div>
         <div className="flex gap-2">
-          <button onClick={simulateGroups} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-lg">Simular</button>
-          <button onClick={generateKnockout} className="bg-amber-500 text-slate-900 px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-lg">🏆 Generar 32avos</button>
+          <button onClick={simulateGroups} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase">Simular</button>
+          <button onClick={generateKnockout} className="bg-amber-500 text-slate-900 px-4 py-2 rounded-xl text-xs font-bold uppercase">🏆 Generar 32avos</button>
         </div>
       </div>
 
@@ -197,7 +199,7 @@ export default function WorldCupApp() {
             </div>
             <div className="lg:col-span-7 space-y-2">
               {matches.filter(m => m.group === activeGroup).map(m => (
-                <div key={m.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                <div key={m.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm">
                   <div className="w-1/3 text-right"><TeamLabel name={m.home} /></div>
                   <div className="flex gap-2"><input type="number" value={m.scoreH} onChange={e => handleScoreChange(m.id, 'scoreH', e.target.value, false)} className="w-10 h-10 text-center rounded-lg bg-slate-50 font-bold" /><input type="number" value={m.scoreA} onChange={e => handleScoreChange(m.id, 'scoreA', e.target.value, false)} className="w-10 h-10 text-center rounded-lg bg-slate-50 font-bold" /></div>
                   <div className="w-1/3"><TeamLabel name={m.away} /></div>
@@ -215,9 +217,9 @@ export default function WorldCupApp() {
 
         {view === "thirds" && (
           <div className="max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl">
-            <h2 className="text-xl font-black mb-4 text-center underline">Ranking de Terceros</h2>
+            <h2 className="text-xl font-black mb-4 text-center underline italic">Ranking de Terceros</h2>
             {Object.keys(INITIAL_GROUPS).map(g => getTable(g)[2]).filter(t => t).sort((a,b) => b.pts - a.pts).map((t, i) => (
-              <div key={t.name} className={`flex justify-between p-3 mb-2 rounded-xl ${i < 8 ? 'bg-blue-50' : 'opacity-40'}`}><TeamLabel name={t.name} /> <span className="font-bold text-blue-600">{t.pts} PTS</span></div>
+              <div key={t.name} className={`flex justify-between p-3 mb-2 rounded-xl ${i < 8 ? 'bg-blue-50' : 'opacity-40 grayscale'}`}><TeamLabel name={t.name} /> <span className="font-bold text-blue-600">{t.pts} PTS</span></div>
             ))}
           </div>
         )}
