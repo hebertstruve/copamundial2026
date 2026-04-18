@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" -o \"c:/Users/heber/world-cup-app/world-cup-2026/public/stadiums/azteca.jpg\" \"https://commons.wikimedia.org/w/index.php?title=Special:FilePath&file=Estadio_Azteca_y_sus_alrededores_46.jpg&width=600\" -w \"HTTP:%{http_code} SIZE:%{size_download}\" -s)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{url_effective}\" \"https://commons.wikimedia.org/w/index.php?title=Special:FilePath&width=600&file=AT%26T_Stadium_2022-08-24.jpg\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{url_effective}\" \"https://commons.wikimedia.org/w/index.php?title=Special:FilePath&width=600&file=Levi%27s_Stadium.JPG\")"
+    ]
+  }
+}

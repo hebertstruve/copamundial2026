@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:upload.wikimedia.org)",
+      "Bash(npm run *)",
+      "Bash(curl -L -o azteca.jpg \"https://upload.wikimedia.org/wikipedia/commons/4/4b/Estadio_Azteca_y_sus_alrededores_46.jpg\" --max-filesize 3000000 -w \"%{http_code} %{size_download}b\\\\n\" -s)",
+      "Bash(curl -L -o \"c:/Users/heber/world-cup-app/world-cup-2026/public/stadiums/azteca.jpg\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Estadio_Azteca_y_sus_alrededores_46.jpg/640px-Estadio_Azteca_y_sus_alrededores_46.jpg\" -w \"HTTP:%{http_code} SIZE:%{size_download}\" -s)",
+      "Bash(curl -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" -o \"c:/Users/heber/world-cup-app/world-cup-2026/public/stadiums/azteca.jpg\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Estadio_Azteca_y_sus_alrededores_46.jpg/640px-Estadio_Azteca_y_sus_alrededores_46.jpg\" -w \"HTTP:%{http_code} SIZE:%{size_download}\" -s)",
+      "Bash(curl -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" -o \"c:/Users/heber/world-cup-app/world-cup-2026/public/stadiums/azteca.jpg\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Estadio_Azteca_y_sus_alrededores_46.jpg/1200px-Estadio_Azteca_y_sus_alrededores_46.jpg\" -w \"HTTP:%{http_code} SIZE:%{size_download}\" -s)"
+    ]
+  }
+}
