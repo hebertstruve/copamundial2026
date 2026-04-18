@@ -5,10 +5,6 @@ const nextConfig: NextConfig = {
     // Esto ignora los errores de TypeScript para poder hacer el deploy
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Esto ignora errores de formato
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
