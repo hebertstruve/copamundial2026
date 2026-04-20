@@ -4,16 +4,16 @@
 :root,
 html[data-theme="editorial"] {
   --paper: #f1e8d5;
-  --paper-edge: #e6dcc4;
+  --paper-edge: #e8dfc8;
   --ink: #0b1d3a;
-  --ink-soft: #1c2f4e;
+  --ink-soft: #1f3557;
   --accent: #e63222;
-  --accent-dark: #c12818;
+  --accent-dark: #b8281b;
   --gold: #c9a34e;
-  --rule: rgba(11, 29, 58, 0.18);
-  --mute: rgba(11, 29, 58, 0.55);
-  --card: #faf4e4;
-  --shadow: 2px 3px 0 rgba(11, 29, 58, 0.9);
+  --rule: rgba(11, 29, 58, 0.25);
+  --mute: #67748a;
+  --card: #fffef8;
+  --shadow: 2px 3px 0 rgba(11, 29, 58, 0.15);
   --radius-card: 0px;
   --pos1: var(--accent);
   --pos2: var(--gold);
