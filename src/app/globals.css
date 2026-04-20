@@ -22,17 +22,17 @@ html[data-theme="editorial"] {
 
 /* ---------- Dark ---------- */
 html[data-theme="dark"] {
-  --paper: #0a0f1c;
-  --paper-edge: #141a2a;
-  --ink: #f1e8d5;
-  --ink-soft: #c9c2b2;
-  --accent: #ff4a3a;
+  --paper: #0f1115;
+  --paper-edge: #15181f;
+  --ink: #f4ede0;
+  --ink-soft: #c9c1ad;
+  --accent: #ff3b30;
   --accent-dark: #e63222;
-  --gold: #e5bf5e;
-  --rule: rgba(241, 232, 213, 0.18);
-  --mute: rgba(241, 232, 213, 0.55);
-  --card: #121a2b;
-  --shadow: 2px 3px 0 rgba(255, 74, 58, 0.5);
+  --gold: #f4c542;
+  --rule: rgba(244, 237, 224, 0.18);
+  --mute: #8a8273;
+  --card: #1a1d24;
+  --shadow: 2px 3px 0 rgba(255, 59, 48, 0.5);
   --radius-card: 0px;
   --pos1: var(--accent);
   --pos2: var(--gold);
@@ -131,8 +131,8 @@ html[data-theme="dark"] body::before {
 
 html[data-theme="dark"] body {
   background-image:
-    radial-gradient(circle at 15% 10%, rgba(255, 74, 58, 0.06), transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(201, 163, 78, 0.04), transparent 45%);
+    radial-gradient(circle at 15% 10%, rgba(255, 59, 48, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(244, 197, 66, 0.04), transparent 45%);
 }
 
 html[data-theme="panini-classic"] body {
