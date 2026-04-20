@@ -1,40 +1,106 @@
 'use client';
 import { motion } from 'framer-motion';
-import { getTable } from '@/lib/utils';
+import { getTable, computeBestThirds } from '@/lib/utils';
 import { TeamLabel } from './TeamLabel';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface GroupTableProps {
   groupId: string;
   matches: any[];
-  dark: boolean;
 }
 
-export function GroupTable({ groupId, matches, dark }: GroupTableProps) {
-  const card = dark ? 'bg-[#1e293b] border-blue-900/60' : 'bg-white border-blue-100';
-  const textPrimary = dark ? 'text-slate-100' : 'text-slate-900';
-  const textMuted = dark ? 'text-slate-400' : 'text-slate-400';
-  const textFaint = dark ? 'text-slate-500' : 'text-slate-300';
+export function GroupTable({ groupId, matches }: GroupTableProps) {
+  const { t } = useTheme();
+  const rows = getTable(groupId, matches);
+  const bestThirds = computeBestThirds(matches);
 
   return (
-    <div className={`rounded-2xl shadow-lg p-5 border transition-colors duration-300 ${card}`}>
-      <h2 className="font-black mb-4 text-center text-[8px] uppercase text-blue-400 tracking-widest italic">Clasificación Grupo {groupId}</h2>
-      <div className="space-y-1.5">
-        {getTable(groupId, matches).map((t, i) => (
-          <motion.div layout key={t.name}
-            className={`flex justify-between items-center p-2 rounded-lg transition-all ${
-              i < 2
-                ? dark ? 'bg-green-900/20' : 'bg-green-50/50'
-                : i === 2
-                ? dark ? 'bg-amber-900/20' : 'bg-amber-50/50'
-                : 'opacity-60'}`}>
-            <div className="flex items-center gap-2">
-              <span className={`text-[8px] font-black w-3 ${textFaint}`}>#{i + 1}</span>
-              <TeamLabel name={t.name} size="w-4" dark={dark} />
-            </div>
-            <span className={`font-black text-xs ${textPrimary}`}>{t.pts} <span className={`text-[8px] ${textMuted}`}>PTS</span></span>
-          </motion.div>
-        ))}
+    <div
+      className="border"
+      style={{
+        background: 'var(--card)',
+        borderColor: 'var(--ink)',
+        boxShadow: 'var(--shadow)',
+        borderRadius: 'var(--radius-card)',
+      }}
+    >
+      <div
+        className="px-4 py-3 font-mono uppercase tracking-[0.2em] border-b"
+        style={{
+          fontSize: 10,
+          color: 'var(--accent)',
+          borderColor: 'var(--rule)',
+        }}
+      >
+        {t('group')} {groupId}
       </div>
+
+      <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+        <thead>
+          <tr
+            className="font-mono uppercase tracking-[0.12em]"
+            style={{ fontSize: 9, color: 'var(--mute)' }}
+          >
+            <th className="px-3 py-2 text-center w-8">{t('pos')}</th>
+            <th className="px-3 py-2">EQUIPO</th>
+            <th className="px-2 py-2 text-center">{t('gamesPlayed')}</th>
+            <th className="px-2 py-2 text-center">{t('goalDiff')}</th>
+            <th className="px-3 py-2 text-right">{t('pts')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const pos = i + 1;
+            let posColor = 'var(--mute)';
+            let stripe: string | undefined;
+            if (pos === 1) posColor = 'var(--pos1)';
+            else if (pos === 2) posColor = 'var(--pos2)';
+            else if (pos === 3) posColor = bestThirds.has(row.name) ? 'var(--pos3)' : 'var(--mute)';
+
+            const qualified = pos <= 2 || (pos === 3 && bestThirds.has(row.name));
+            if (qualified) stripe = 'var(--paper-edge)';
+
+            return (
+              <motion.tr
+                layout
+                key={row.name}
+                style={{
+                  background: stripe,
+                  borderTop: '1px solid var(--rule)',
+                }}
+              >
+                <td
+                  className="px-3 py-2 text-center font-display"
+                  style={{ color: posColor, fontSize: 16, lineHeight: 1 }}
+                >
+                  {pos}
+                </td>
+                <td className="px-3 py-2 min-w-0">
+                  <TeamLabel name={row.name} variant="inline" />
+                </td>
+                <td
+                  className="px-2 py-2 text-center font-mono"
+                  style={{ fontSize: 11, color: 'var(--ink-soft)' }}
+                >
+                  {row.pj}
+                </td>
+                <td
+                  className="px-2 py-2 text-center font-mono"
+                  style={{ fontSize: 11, color: 'var(--ink-soft)' }}
+                >
+                  {row.sg > 0 ? `+${row.sg}` : row.sg}
+                </td>
+                <td
+                  className="px-3 py-2 text-right font-display"
+                  style={{ fontSize: 18, color: 'var(--ink)' }}
+                >
+                  {row.pts}
+                </td>
+              </motion.tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

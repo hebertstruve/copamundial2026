@@ -1,51 +1,150 @@
 'use client';
 import { motion } from 'framer-motion';
 import { VENUE_IMAGES, VENUE_LOCATION } from '@/data/schedule';
-import { getScoreColor } from '@/lib/utils';
 import { TeamLabel } from './TeamLabel';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface MatchCardProps {
   match: any;
-  dark: boolean;
   onScoreChange: (id: string, side: string, val: string) => void;
 }
 
-export function MatchCard({ match: m, dark, onScoreChange }: MatchCardProps) {
-  const card = dark ? 'bg-[#1e293b] border-blue-900/60' : 'bg-white border-blue-100';
-  const divider = dark ? 'border-slate-700' : 'border-slate-100';
-  const imgBg = dark ? 'bg-slate-800' : 'bg-slate-100';
+export function MatchCard({ match: m, onScoreChange }: MatchCardProps) {
+  const { t } = useTheme();
+  const venueInfo = VENUE_LOCATION[m.venue];
+  const jornada = Number(String(m.id).split('-')[1]) + 1;
+  const homeWins = m.played && m.scoreH > m.scoreA;
+  const awayWins = m.played && m.scoreA > m.scoreH;
 
   return (
-    <motion.div layout className={`rounded-xl border shadow-sm overflow-hidden transition-colors duration-300 ${card}`}>
+    <motion.div
+      layout
+      className="overflow-hidden border"
+      style={{
+        background: 'var(--card)',
+        borderColor: 'var(--ink)',
+        boxShadow: 'var(--shadow)',
+        borderRadius: 'var(--radius-card)',
+      }}
+    >
       {VENUE_IMAGES[m.venue] && (
-        <div className={`w-full h-24 flex items-center justify-center overflow-hidden ${imgBg}`}>
-          <img src={VENUE_IMAGES[m.venue]} alt={m.venue} className="w-full h-full object-contain" />
+        <div
+          className="w-full h-28 md:h-32 overflow-hidden"
+          style={{ background: 'var(--paper-edge)' }}
+        >
+          <img
+            src={VENUE_IMAGES[m.venue]}
+            alt={m.venue}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
         </div>
       )}
-      <div className="px-4 pt-3 pb-4">
-        <div className={`flex items-center justify-between mb-3 pb-2 border-b ${divider}`}>
-          <span className={`text-[11px] font-bold ${dark ? 'text-slate-300' : 'text-slate-600'}`}>{m.date}</span>
-          <div className="flex flex-col items-center mx-2 min-w-0">
-            <span className={`text-[10px] font-black uppercase tracking-wide truncate ${dark ? 'text-slate-300' : 'text-slate-600'}`}>{m.venue}</span>
-            {VENUE_LOCATION[m.venue] && (
-              <span className={`text-[9px] font-medium truncate ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
-                {VENUE_LOCATION[m.venue].country} · {VENUE_LOCATION[m.venue].city}
-              </span>
-            )}
-          </div>
-          <span className={`text-[11px] font-bold ${dark ? 'text-slate-300' : 'text-slate-600'}`}>{m.time}</span>
+
+      <div
+        className="flex items-start justify-between gap-3 px-4 py-2 border-b font-mono uppercase tracking-[0.18em]"
+        style={{
+          borderColor: 'var(--rule)',
+          fontSize: 10,
+          color: 'var(--ink-soft)',
+        }}
+      >
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold truncate" style={{ color: 'var(--ink)' }}>
+            {m.venue}
+          </span>
+          {venueInfo && (
+            <span className="truncate" style={{ color: 'var(--mute)' }}>
+              {venueInfo.city}
+            </span>
+          )}
         </div>
-        <div className="flex items-center justify-between">
-          <div className="w-1/3 text-right"><TeamLabel name={m.home} size="w-6" dark={dark} /></div>
-          <div className="flex gap-2 px-2">
-            <input type="number" value={m.scoreH} onChange={e => onScoreChange(m.id, 'scoreH', e.target.value)}
-              className={`w-10 h-10 text-center rounded-lg font-black border transition-all text-base outline-none ${getScoreColor(m.scoreH, m.scoreA, m.played, dark)}`} />
-            <input type="number" value={m.scoreA} onChange={e => onScoreChange(m.id, 'scoreA', e.target.value)}
-              className={`w-10 h-10 text-center rounded-lg font-black border transition-all text-base outline-none ${getScoreColor(m.scoreA, m.scoreH, m.played, dark)}`} />
-          </div>
-          <div className="w-1/3"><TeamLabel name={m.away} size="w-6" dark={dark} /></div>
+        <div className="text-right shrink-0">
+          <div style={{ color: 'var(--ink)' }}>{m.date}</div>
+          <div style={{ color: 'var(--mute)' }}>{m.time}</div>
         </div>
       </div>
+
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-5 px-4 py-5">
+        <div className="flex justify-end">
+          <TeamLabel name={m.home} variant="stacked" align="right" />
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <ScoreInput
+            value={m.scoreH}
+            onChange={(v) => onScoreChange(m.id, 'scoreH', v)}
+            winning={homeWins}
+            ariaLabel={`Goles de ${m.home} contra ${m.away}`}
+          />
+          <span
+            aria-hidden="true"
+            className="font-display"
+            style={{ fontSize: 26, color: 'var(--mute)', lineHeight: 1 }}
+          >
+            –
+          </span>
+          <ScoreInput
+            value={m.scoreA}
+            onChange={(v) => onScoreChange(m.id, 'scoreA', v)}
+            winning={awayWins}
+            ariaLabel={`Goles de ${m.away} contra ${m.home}`}
+          />
+        </div>
+
+        <div className="flex justify-start">
+          <TeamLabel name={m.away} variant="stacked" align="left" />
+        </div>
+      </div>
+
+      <div
+        className="flex justify-between items-center px-4 py-2 border-t font-mono uppercase tracking-[0.18em]"
+        style={{
+          borderColor: 'var(--rule)',
+          fontSize: 9,
+          color: 'var(--mute)',
+        }}
+      >
+        <span>
+          {m.played ? `Jornada ${Math.ceil(jornada / 2)}` : t('toBePlayed')}
+        </span>
+        <span>{m.id}</span>
+      </div>
     </motion.div>
+  );
+}
+
+function ScoreInput({
+  value,
+  onChange,
+  winning,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (v: string) => void;
+  winning: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={ariaLabel}
+      className="font-display text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      style={{
+        width: 44,
+        height: 54,
+        fontSize: 24,
+        border: '2px solid var(--ink)',
+        background: winning ? 'var(--ink)' : 'var(--card)',
+        color: winning ? 'var(--paper)' : 'var(--ink)',
+        padding: '6px 0 4px',
+        WebkitAppearance: 'none',
+        MozAppearance: 'textfield',
+      }}
+    />
   );
 }
