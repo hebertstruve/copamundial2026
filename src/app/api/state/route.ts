@@ -5,30 +5,40 @@ const MAX_BODY_BYTES = 200_000;
 const TTL_SECONDS = 60 * 60 * 24 * 90;
 const ROOM_RE = /^[a-z0-9]{4,12}$/;
 
-/**
- * Vercel Marketplace Redis (Upstash) injects only REDIS_URL
- * (rediss://default:TOKEN@HOST:PORT). We derive the REST credentials
- * at runtime so the function stays edge-friendly and no manual env
- * vars are ever needed. Falls back to the explicit UPSTASH_* vars or
- * the legacy KV_REST_API_* pair if they happen to be present.
- */
-function getRedis(): Redis | null {
-  const explicitUrl =
-    process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const explicitToken =
-    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  if (explicitUrl && explicitToken) {
-    return new Redis({ url: explicitUrl, token: explicitToken });
+interface RedisSetup {
+  client: Redis;
+  source: 'explicit-upstash' | 'explicit-kv' | 'parsed-redis-url';
+}
+
+function getRedisSetup(): RedisSetup | null {
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (upstashUrl && upstashToken) {
+    return {
+      client: new Redis({ url: upstashUrl, token: upstashToken }),
+      source: 'explicit-upstash',
+    };
+  }
+  const kvUrl = process.env.KV_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN;
+  if (kvUrl && kvToken) {
+    return {
+      client: new Redis({ url: kvUrl, token: kvToken }),
+      source: 'explicit-kv',
+    };
   }
   const tcpUrl = process.env.REDIS_URL ?? process.env.KV_URL;
   if (!tcpUrl) return null;
   try {
     const u = new URL(tcpUrl);
     if (!u.hostname || !u.password) return null;
-    return new Redis({
-      url: `https://${u.hostname}`,
-      token: decodeURIComponent(u.password),
-    });
+    return {
+      client: new Redis({
+        url: `https://${u.hostname}`,
+        token: decodeURIComponent(u.password),
+      }),
+      source: 'parsed-redis-url',
+    };
   } catch {
     return null;
   }
@@ -39,30 +49,62 @@ function pickRoom(req: NextRequest): string | null {
   return r && ROOM_RE.test(r) ? r : null;
 }
 
+function envFlags() {
+  return {
+    REDIS_URL: Boolean(process.env.REDIS_URL),
+    KV_URL: Boolean(process.env.KV_URL),
+    KV_REST_API_URL: Boolean(process.env.KV_REST_API_URL),
+    KV_REST_API_TOKEN: Boolean(process.env.KV_REST_API_TOKEN),
+    UPSTASH_REDIS_REST_URL: Boolean(process.env.UPSTASH_REDIS_REST_URL),
+    UPSTASH_REDIS_REST_TOKEN: Boolean(process.env.UPSTASH_REDIS_REST_TOKEN),
+  };
+}
+
 export async function GET(request: NextRequest) {
-  const redis = getRedis();
-  if (!redis) {
-    return NextResponse.json({ error: 'sync_not_configured' }, { status: 503 });
+  // Health-check mode: /api/state?probe=1
+  if (request.nextUrl.searchParams.get('probe') === '1') {
+    const setup = getRedisSetup();
+    return NextResponse.json({
+      configured: Boolean(setup),
+      source: setup?.source ?? null,
+      envFlags: envFlags(),
+    });
+  }
+
+  const setup = getRedisSetup();
+  if (!setup) {
+    return NextResponse.json(
+      { error: 'sync_not_configured', envFlags: envFlags() },
+      { status: 503 }
+    );
   }
   const room = pickRoom(request);
   if (!room) {
     return NextResponse.json({ error: 'invalid_room' }, { status: 400 });
   }
   try {
-    const data = await redis.get(`wc26:room:${room}`);
+    const data = await setup.client.get(`wc26:room:${room}`);
     if (!data) {
       return NextResponse.json({ exists: false }, { status: 404 });
     }
     return NextResponse.json({ exists: true, state: data });
-  } catch {
-    return NextResponse.json({ error: 'redis_error' }, { status: 500 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[state GET] redis_error:', msg, 'source:', setup.source);
+    return NextResponse.json(
+      { error: 'redis_error', message: msg, source: setup.source },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const redis = getRedis();
-  if (!redis) {
-    return NextResponse.json({ error: 'sync_not_configured' }, { status: 503 });
+  const setup = getRedisSetup();
+  if (!setup) {
+    return NextResponse.json(
+      { error: 'sync_not_configured', envFlags: envFlags() },
+      { status: 503 }
+    );
   }
   const room = pickRoom(request);
   if (!room) {
@@ -89,7 +131,7 @@ export async function PUT(request: NextRequest) {
   }
   const payload = body as { matches: unknown[]; bracket: unknown[]; scorers: unknown[] };
   try {
-    await redis.set(
+    await setup.client.set(
       `wc26:room:${room}`,
       {
         matches: payload.matches,
@@ -100,8 +142,13 @@ export async function PUT(request: NextRequest) {
       { ex: TTL_SECONDS }
     );
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: 'redis_error' }, { status: 500 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[state PUT] redis_error:', msg, 'source:', setup.source);
+    return NextResponse.json(
+      { error: 'redis_error', message: msg, source: setup.source },
+      { status: 500 }
+    );
   }
 }
 
