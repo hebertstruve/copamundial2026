@@ -58,6 +58,16 @@ export const I18N: Record<string, Record<Language, string>> = {
   topScorerGoals:  { es: 'GOLES DEL GOLEADOR',      pt: 'GOLS DO ARTILHEIRO' },
   tournamentGoals: { es: 'GOLES EN EL TORNEO',      pt: 'GOLS NO TORNEIO' },
   goldenBoot:      { es: 'BOTA DE ORO',             pt: 'CHUTEIRA DE OURO' },
+  syncIdle:        { es: 'SIN SYNC',                pt: 'SEM SYNC' },
+  syncLoading:     { es: 'CARGANDO…',               pt: 'CARREGANDO…' },
+  syncSaving:      { es: 'GUARDANDO…',              pt: 'SALVANDO…' },
+  syncSynced:      { es: 'SINCRONIZADO',            pt: 'SINCRONIZADO' },
+  syncOffline:     { es: 'SIN CONEXIÓN',            pt: 'SEM CONEXÃO' },
+  syncDisabled:    { es: 'SOLO LOCAL',              pt: 'APENAS LOCAL' },
+  syncRoom:        { es: 'Sala',                    pt: 'Sala' },
+  syncShare:       { es: 'Compartir URL',           pt: 'Compartilhar URL' },
+  syncCopied:      { es: 'COPIADO',                 pt: 'COPIADO' },
+  syncCopyFallback:{ es: 'Copia esta URL:',         pt: 'Copie esta URL:' },
 };
 
 export function translate(key: string, lang: Language): string {

@@ -1,6 +1,8 @@
 "use client";
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRoomSync } from '@/hooks/useRoomSync';
+import { SyncBadge } from '@/components/SyncBadge';
 
 // Lazy: canvas-confetti (~10KB gz) only fires on FINAL win or simulateAll climax.
 const fireConfetti = async (opts: { particleCount: number; spread: number }) => {
@@ -57,6 +59,7 @@ export default function WorldCupApp() {
   const [past, setPast] = useState<Snapshot[]>([]);
   const [future, setFuture] = useState<Snapshot[]>([]);
   const [fx, setFx] = useState<FxMessage | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const simulatingRef = useRef(false);
 
   const snapshot = (): Snapshot => ({ matches, bracket, scorers });
@@ -90,7 +93,27 @@ export default function WorldCupApp() {
     setMatches(m ? JSON.parse(m) : generateInitialMatches());
     setBracket(b ? JSON.parse(b) : generateInitialBracket());
     if (s) setScorers(JSON.parse(s));
+    setHydrated(true);
   }, []);
+
+  const handleRemoteLoad = useCallback(
+    (remote: { matches: any[]; bracket: any[]; scorers: ScorerGoal[] }) => {
+      if (Array.isArray(remote.matches) && remote.matches.length > 0) setMatches(remote.matches);
+      if (Array.isArray(remote.bracket) && remote.bracket.length > 0) setBracket(remote.bracket);
+      if (Array.isArray(remote.scorers)) setScorers(remote.scorers);
+    },
+    []
+  );
+
+  const syncState = useMemo(
+    () => ({ matches, bracket, scorers }),
+    [matches, bracket, scorers]
+  );
+  const { roomId, status: syncStatus } = useRoomSync({
+    state: syncState,
+    ready: hydrated,
+    onRemoteLoad: handleRemoteLoad,
+  });
 
   useEffect(() => {
     if (matches.length > 0) localStorage.setItem(LS_MATCHES, JSON.stringify(matches));
@@ -341,6 +364,14 @@ export default function WorldCupApp() {
         canUndo={past.length > 0}
         canRedo={future.length > 0}
       />
+      <div
+        className="w-full border-b"
+        style={{ borderColor: 'var(--rule)', background: 'var(--paper-edge)' }}
+      >
+        <div className="mx-auto max-w-7xl px-5 md:px-8 py-1.5 flex justify-end">
+          <SyncBadge roomId={roomId} status={syncStatus} />
+        </div>
+      </div>
       <PhaseNav view={view} onChange={setView} />
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 md:py-10">
