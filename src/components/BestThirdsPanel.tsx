@@ -22,6 +22,7 @@ export function BestThirdsPanel({ matches }: BestThirdsPanelProps) {
 
   return (
     <div
+      data-panel="true"
       className="border"
       style={{
         background: 'var(--card)',

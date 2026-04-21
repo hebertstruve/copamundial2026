@@ -16,6 +16,7 @@ export function GroupTable({ groupId, matches }: GroupTableProps) {
 
   return (
     <div
+      data-panel="true"
       className="border"
       style={{
         background: 'var(--card)',

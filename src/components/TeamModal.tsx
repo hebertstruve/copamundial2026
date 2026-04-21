@@ -62,6 +62,7 @@ export function TeamModal({ matches, scorers }: TeamModalProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="team-modal-title"
+            data-panel="true"
             className="w-full max-w-[720px] max-h-[85vh] overflow-auto"
             style={{
               background: 'var(--card)',

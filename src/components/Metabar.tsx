@@ -62,6 +62,7 @@ export function Metabar({
 
   return (
     <div
+      data-panel="true"
       className="w-full border-b"
       style={{ borderColor: 'var(--ink)', background: 'var(--paper-edge)' }}
     >
