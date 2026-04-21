@@ -1,44 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import Redis from 'ioredis';
 
 const MAX_BODY_BYTES = 200_000;
 const TTL_SECONDS = 60 * 60 * 24 * 90;
 const ROOM_RE = /^[a-z0-9]{4,12}$/;
 
-interface RedisSetup {
-  client: Redis;
-  source: 'explicit-upstash' | 'explicit-kv' | 'parsed-redis-url';
-}
-
-function getRedisSetup(): RedisSetup | null {
-  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (upstashUrl && upstashToken) {
-    return {
-      client: new Redis({ url: upstashUrl, token: upstashToken }),
-      source: 'explicit-upstash',
-    };
-  }
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
-  if (kvUrl && kvToken) {
-    return {
-      client: new Redis({ url: kvUrl, token: kvToken }),
-      source: 'explicit-kv',
-    };
-  }
-  const tcpUrl = process.env.REDIS_URL ?? process.env.KV_URL;
-  if (!tcpUrl) return null;
+/**
+ * Vercel Marketplace's Redis integration injects only REDIS_URL
+ * (rediss://default:TOKEN@HOST:PORT). That host serves the Redis
+ * protocol over tcp/tls but not HTTPS/REST, so @upstash/redis timed
+ * out at 504. ioredis speaks native tcp; it requires nodejs runtime
+ * (edge runtime forbids raw sockets).
+ *
+ * We cache the client across warm invocations to avoid reconnecting
+ * on every request.
+ */
+let cached: Redis | null = null;
+function getRedis(): Redis | null {
+  if (cached) return cached;
+  const url = process.env.REDIS_URL ?? process.env.KV_URL;
+  if (!url) return null;
   try {
-    const u = new URL(tcpUrl);
-    if (!u.hostname || !u.password) return null;
-    return {
-      client: new Redis({
-        url: `https://${u.hostname}`,
-        token: decodeURIComponent(u.password),
-      }),
-      source: 'parsed-redis-url',
-    };
+    cached = new Redis(url, {
+      maxRetriesPerRequest: 2,
+      connectTimeout: 5000,
+      lazyConnect: false,
+    });
+    return cached;
   } catch {
     return null;
   }
@@ -53,58 +41,54 @@ function envFlags() {
   return {
     REDIS_URL: Boolean(process.env.REDIS_URL),
     KV_URL: Boolean(process.env.KV_URL),
-    KV_REST_API_URL: Boolean(process.env.KV_REST_API_URL),
-    KV_REST_API_TOKEN: Boolean(process.env.KV_REST_API_TOKEN),
-    UPSTASH_REDIS_REST_URL: Boolean(process.env.UPSTASH_REDIS_REST_URL),
-    UPSTASH_REDIS_REST_TOKEN: Boolean(process.env.UPSTASH_REDIS_REST_TOKEN),
   };
 }
 
 export async function GET(request: NextRequest) {
-  // Health-check mode: /api/state?probe=1
   if (request.nextUrl.searchParams.get('probe') === '1') {
-    const setup = getRedisSetup();
+    const client = getRedis();
+    let ping: string | null = null;
+    let pingErr: string | null = null;
+    if (client) {
+      try {
+        ping = await client.ping();
+      } catch (e) {
+        pingErr = e instanceof Error ? e.message : String(e);
+      }
+    }
     return NextResponse.json({
-      configured: Boolean(setup),
-      source: setup?.source ?? null,
+      configured: Boolean(client),
       envFlags: envFlags(),
+      ping,
+      pingErr,
     });
   }
 
-  const setup = getRedisSetup();
-  if (!setup) {
-    return NextResponse.json(
-      { error: 'sync_not_configured', envFlags: envFlags() },
-      { status: 503 }
-    );
+  const client = getRedis();
+  if (!client) {
+    return NextResponse.json({ error: 'sync_not_configured' }, { status: 503 });
   }
   const room = pickRoom(request);
   if (!room) {
     return NextResponse.json({ error: 'invalid_room' }, { status: 400 });
   }
   try {
-    const data = await setup.client.get(`wc26:room:${room}`);
-    if (!data) {
+    const raw = await client.get(`wc26:room:${room}`);
+    if (!raw) {
       return NextResponse.json({ exists: false }, { status: 404 });
     }
-    return NextResponse.json({ exists: true, state: data });
+    return NextResponse.json({ exists: true, state: JSON.parse(raw) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[state GET] redis_error:', msg, 'source:', setup.source);
-    return NextResponse.json(
-      { error: 'redis_error', message: msg, source: setup.source },
-      { status: 500 }
-    );
+    console.error('[state GET] redis_error:', msg);
+    return NextResponse.json({ error: 'redis_error', message: msg }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const setup = getRedisSetup();
-  if (!setup) {
-    return NextResponse.json(
-      { error: 'sync_not_configured', envFlags: envFlags() },
-      { status: 503 }
-    );
+  const client = getRedis();
+  if (!client) {
+    return NextResponse.json({ error: 'sync_not_configured' }, { status: 503 });
   }
   const room = pickRoom(request);
   if (!room) {
@@ -130,26 +114,20 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_shape' }, { status: 400 });
   }
   const payload = body as { matches: unknown[]; bracket: unknown[]; scorers: unknown[] };
+  const doc = {
+    matches: payload.matches,
+    bracket: payload.bracket,
+    scorers: payload.scorers,
+    updatedAt: Date.now(),
+  };
   try {
-    await setup.client.set(
-      `wc26:room:${room}`,
-      {
-        matches: payload.matches,
-        bracket: payload.bracket,
-        scorers: payload.scorers,
-        updatedAt: Date.now(),
-      },
-      { ex: TTL_SECONDS }
-    );
+    await client.set(`wc26:room:${room}`, JSON.stringify(doc), 'EX', TTL_SECONDS);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[state PUT] redis_error:', msg, 'source:', setup.source);
-    return NextResponse.json(
-      { error: 'redis_error', message: msg, source: setup.source },
-      { status: 500 }
-    );
+    console.error('[state PUT] redis_error:', msg);
+    return NextResponse.json({ error: 'redis_error', message: msg }, { status: 500 });
   }
 }
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
