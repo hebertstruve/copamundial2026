@@ -32,6 +32,7 @@ export function useRoomSync<T>({
 }: UseRoomSyncArgs<T>) {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [status, setStatus] = useState<SyncStatus>('idle');
+  const [initialPushTick, setInitialPushTick] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteLoadedRef = useRef(false);
   const statusRef = useRef<SyncStatus>('idle');
@@ -65,8 +66,13 @@ export function useRoomSync<T>({
           return;
         }
         if (res.status === 404) {
+          // Room is empty on server — upload whatever the user has
+          // locally right now (protects scores entered while sync was
+          // temporarily offline/disabled). The save effect picks this
+          // up via the initialPushTick bump below.
           remoteLoadedRef.current = true;
           setStatus('synced');
+          setInitialPushTick((n) => n + 1);
           return;
         }
         if (!res.ok) throw new Error('fetch_failed');
@@ -111,7 +117,7 @@ export function useRoomSync<T>({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [state, roomId, ready]);
+  }, [state, roomId, ready, initialPushTick]);
 
   const forceSave = useCallback(async () => {
     if (!roomId || statusRef.current === 'disabled') return;
