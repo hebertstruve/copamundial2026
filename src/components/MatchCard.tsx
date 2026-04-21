@@ -17,6 +17,7 @@ export function MatchCard({ match: m, onScoreChange }: MatchCardProps) {
   const awayWins = m.played && m.scoreA > m.scoreH;
 
   return (
+    <div className="wc-card">
     <motion.div
       layout
       className="overflow-hidden border"
@@ -111,6 +112,7 @@ export function MatchCard({ match: m, onScoreChange }: MatchCardProps) {
         <span>{m.id}</span>
       </div>
     </motion.div>
+    </div>
   );
 }
 

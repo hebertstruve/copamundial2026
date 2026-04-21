@@ -39,10 +39,10 @@ html[data-theme="dark"] {
   --pos3: #4f9bff;
 }
 
-/* ---------- Panini Classic (kraft card) ---------- */
+/* ---------- Panini Classic (kraft card, sticker look) ---------- */
 html[data-theme="panini-classic"] {
   --paper: #d9c7a4;
-  --paper-edge: #c2b08c;
+  --paper-edge: #c9b693;
   --ink: #2a1f14;
   --ink-soft: #4a3a28;
   --accent: #c4302b;
@@ -50,12 +50,28 @@ html[data-theme="panini-classic"] {
   --gold: #e8a93a;
   --rule: rgba(42, 31, 20, 0.3);
   --mute: #6b5a42;
-  --card: #eadcb8;
+  --card: #efe3c8;
   --shadow: 3px 3px 0 var(--ink);
   --radius-card: 6px;
   --pos1: var(--accent);
   --pos2: var(--gold);
   --pos3: #3a6bb5;
+}
+
+/* Sticker rotation: apply on card wrappers so framer-motion transforms
+   stay untouched on the inner motion.div. Hover re-straightens. */
+html[data-theme="panini-classic"] .wc-card:nth-child(4n+1) { transform: rotate(-0.75deg); }
+html[data-theme="panini-classic"] .wc-card:nth-child(4n+2) { transform: rotate(0.5deg); }
+html[data-theme="panini-classic"] .wc-card:nth-child(4n+3) { transform: rotate(-0.25deg); }
+html[data-theme="panini-classic"] .wc-card:nth-child(4n)   { transform: rotate(1.25deg); }
+html[data-theme="panini-classic"] .wc-card {
+  transition: transform 0.2s ease;
+  transform-origin: center;
+}
+html[data-theme="panini-classic"] .wc-card:hover {
+  transform: rotate(0deg);
+  z-index: 5;
+  position: relative;
 }
 
 /* ---------- Panini Premium (holographic foil) ---------- */

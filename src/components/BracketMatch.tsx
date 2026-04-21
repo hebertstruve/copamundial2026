@@ -19,6 +19,7 @@ export function BracketMatch({ match: m, onScoreChange }: BracketMatchProps) {
   const awayWinner = m.winner && m.winner === m.teamA;
 
   return (
+    <div className="wc-card">
     <motion.div
       layout
       className="border"
@@ -71,6 +72,7 @@ export function BracketMatch({ match: m, onScoreChange }: BracketMatchProps) {
         onPenChange={(v) => onScoreChange(m.id, 'penA', v)}
       />
     </motion.div>
+    </div>
   );
 }
 
